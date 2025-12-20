@@ -3,6 +3,9 @@ from pyrogram import enums, filters, types
 from Dev import app, config, db, lang
 from Dev.helpers import buttons, utils
 
+# fire effect id (FREE wala)
+    FIRE_EFFECT_ID = "5104841245755180586"   # 🔥 [web:41]
+
 
 @app.on_message(filters.command(["help"]) & filters.private & ~app.bl_users)
 @lang.language()
@@ -31,11 +34,14 @@ async def start(_, message: types.Message):
     )
 
     key = buttons.start_key(message.lang, private)
-    await message.reply_sticker("CAACAgUAAxkBAAONaUbqrD_uzkyWB1Qe5szf8HjrWHoAAtoOAAIBpeBXwLT496f35J4eBA")
+    await message.reply_sticker(
+    "CAACAgUAAxkBAAONaUbqrD_uzkyWB1Qe5szf8HjrWHoAAtoOAAIBpeBXwLT496f35J4eBA"
+    )
     await message.reply_text(
-        text=_text,
-        reply_markup=key,
-        quote=not private,
+    text=_text,
+    reply_markup=key,
+    quote=not private,
+    message_effect_id=FIRE_EFFECT_ID,   # yahi se side‑me fire effect aayega
     )
 
     if private:
