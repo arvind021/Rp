@@ -31,9 +31,8 @@ async def start(_, message: types.Message):
     )
 
     key = buttons.start_key(message.lang, private)
-    await message.reply_video(
-        video="https://ar-hosting.pages.dev/1764351689146.mp4",
-        caption=_text,
+    await message.reply_text(
+        text=_text,
         reply_markup=key,
         quote=not private,
     )
