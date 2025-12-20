@@ -4,7 +4,7 @@ from Dev import app, config, db, lang
 from Dev.helpers import buttons, utils
 
 # fire effect id (FREE wala)
-    FIRE_EFFECT_ID = "5104841245755180586"   # 🔥 [web:41]
+FIRE_EFFECT_ID = "5104841245755180586"   # 🔥 [web:41]
 
 
 @app.on_message(filters.command(["help"]) & filters.private & ~app.bl_users)
