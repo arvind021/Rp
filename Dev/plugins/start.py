@@ -3,9 +3,6 @@ from pyrogram import enums, filters, types
 from Dev import app, config, db, lang
 from Dev.helpers import buttons, utils
 
-# fire effect id (FREE wala)
-FIRE_EFFECT_ID = 5104841245755180586  # file ke top pe, bina indent
-
 
 @app.on_message(filters.command(["help"]) & filters.private & ~app.bl_users)
 @lang.language()
@@ -15,7 +12,7 @@ async def _help(_, m: types.Message):
         reply_markup=buttons.help_markup(m.lang),
         quote=True,
     )
-
+    
 
 @app.on_message(filters.command(["start"]))
 @lang.language()
@@ -34,18 +31,11 @@ async def start(_, message: types.Message):
     )
 
     key = buttons.start_key(message.lang, private)
-
-    await message.reply_sticker(
-        "CAACAgUAAxkBAAONaUbqrD_uzkyWB1Qe5szf8HjrWHoAAtoOAAIBpeBXwLT496f35J4eBA"
-    )
-
-    # yaha reply_text ki jagah client.send_message + effect
-    await _.send_message(
-        chat_id=message.chat.id,
+    await message.reply_sticker("")
+    await message.reply_text(
         text=_text,
         reply_markup=key,
-        reply_to_message_id=message.id if not private else None,
-        message_effect_id=FIRE_EFFECT_ID,   # side fire effect
+        quote=not private,
     )
 
     if private:
@@ -58,7 +48,7 @@ async def start(_, message: types.Message):
             return
         await utils.send_log(message, True)
         await db.add_chat(message.chat.id)
-        
+
 
 @app.on_message(filters.command(["playmode", "settings"]) & filters.group & ~app.bl_users)
 @lang.language()
