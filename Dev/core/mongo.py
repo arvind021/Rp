@@ -184,32 +184,33 @@ class MongoDB:
             self.chats.extend([chat["_id"] async for chat in self.chatsdb.find()])
         return self.chats
 
-    # COMMAND DELETE
+     # COMMAND DELETE (DEFAULT ON)
     async def get_cmd_delete(self, chat_id: int) -> bool:
-    # pehli baar check → DB se
-    if chat_id not in self.cmd_delete:
-        doc = await self.chatsdb.find_one({"_id": chat_id})
-
-        # 🔥 DEFAULT ON
-        if not doc or doc.get("cmd_delete", True):
-            self.cmd_delete.append(chat_id)
-
-    return chat_id in self.cmd_delete
-
-
-async def set_cmd_delete(self, chat_id: int, delete: bool = True) -> None:
-    if delete:
         if chat_id not in self.cmd_delete:
-            self.cmd_delete.append(chat_id)
-    else:
-        if chat_id in self.cmd_delete:
-            self.cmd_delete.remove(chat_id)
+            doc = await self.chatsdb.find_one({"_id": chat_id})
 
-    await self.chatsdb.update_one(
-        {"_id": chat_id},
-        {"$set": {"cmd_delete": delete}},
-        upsert=True,
-    )
+            # 🔥 default ON
+            if not doc or doc.get("cmd_delete", True):
+                self.cmd_delete.append(chat_id)
+
+        return chat_id in self.cmd_delete
+
+
+    async def set_cmd_delete(self, chat_id: int, delete: bool = True) -> None:
+        if delete:
+            if chat_id not in self.cmd_delete:
+                self.cmd_delete.append(chat_id)
+        else:
+            if chat_id in self.cmd_delete:
+                self.cmd_delete.remove(chat_id)
+
+        await self.chatsdb.update_one(
+            {"_id": chat_id},
+            {"$set": {"cmd_delete": delete}},
+            upsert=True,
+        )
+
+    
     # LANGUAGE METHODS
     async def set_lang(self, chat_id: int, lang_code: str):
         await self.langdb.update_one(
