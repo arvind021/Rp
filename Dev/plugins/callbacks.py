@@ -134,7 +134,6 @@ async def _help(_, query: types.CallbackQuery):
         reply_markup=buttons.help_markup(query.lang, True),
     )
 
-
 @app.on_callback_query(filters.regex("settings") & ~app.bl_users)
 @lang.language()
 @admin_check
@@ -142,30 +141,19 @@ async def _settings_cb(_, query: types.CallbackQuery):
     cmd = query.data.split()
     if len(cmd) == 1:
         return await query.answer()
-
     await query.answer(query.lang["processing"], show_alert=True)
 
     chat_id = query.message.chat.id
-
     _admin = await db.get_play_mode(chat_id)
-
-    # ===== FORCE cmd delete TRUE (even if DB has False) =====
-    _delete = await db.get_cmd_delete(chat_id)
-    if _delete is False:
-        _delete = True
-        await db.set_cmd_delete(chat_id, True)
-    # =======================================================
-
+    _delete = await db.get_cmd_delete(chat_id or True) 
     _language = await db.get_lang(chat_id)
 
     if cmd[1] == "delete":
         _delete = not _delete
         await db.set_cmd_delete(chat_id, _delete)
-
     elif cmd[1] == "play":
         await db.set_play_mode(chat_id, _admin)
         _admin = not _admin
-
     await query.edit_message_reply_markup(
         reply_markup=buttons.settings_markup(
             query.lang,
@@ -175,3 +163,6 @@ async def _settings_cb(_, query: types.CallbackQuery):
             chat_id,
         )
     )
+
+
+
