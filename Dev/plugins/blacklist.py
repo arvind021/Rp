@@ -3,7 +3,7 @@ from pyrogram import filters, types
 from Dev import app, db, lang
 
 
-@app.on_message(filters.command(["blacklist", "unblacklist", "whitelist"]) & app.sudoers)
+@app.on_message(filters.command(["blacklist", "unblacklist", "whitelist", "block"]) & app.sudoers)
 @lang.language()
 async def _blacklist(_, m: types.Message):
     if len(m.command) < 2:
