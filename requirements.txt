@@ -5,7 +5,7 @@ psutil~=5.9.8
 pymongo>=4.6.3
 pytgcrypto>=1.2.11
 pyrogram==2.0.106
-pytgcalls==3.0.0.dev24
+py-tgcalls==2.2.8
 py-yt-search~=0.5.1
 python-dotenv~=1.0.1
 yt-dlp>=2024.12.30
