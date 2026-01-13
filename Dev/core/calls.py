@@ -120,56 +120,64 @@ class TgCall(PyTgCalls):
         msg = await app.send_message(chat_id=chat_id, text=_lang["play_again"])
         await self.play_media(chat_id, msg, media)
 
+async def play_next(self, chat_id: int) -> None:
+        if not await db.get_call(chat_id):
+            return
 
-    async def play_next(self, chat_id: int) -> None:
-    if not await db.get_call(chat_id):
-        return
+        # 🔁 LOOP CHECK
+        loop_count = await get_loop(chat_id)
+        current = queue.get_current(chat_id)
 
-    # 🔁 LOOP CHECK
-    loop_count = await get_loop(chat_id)
-    current = queue.get_current(chat_id)
+        if loop_count > 0 and current:
+            current.time = 0
+            await set_loop(chat_id, loop_count - 1)
 
-    if loop_count > 0 and current:
-        current.time = 0
-        await set_loop(chat_id, loop_count - 1)
+            _lang = await lang.get_lang(chat_id)
+            msg = await app.send_message(
+                chat_id=chat_id,
+                text=_lang["play_again"]
+            )
+
+            current.message_id = msg.id
+            await self.play_media(chat_id, msg, current)
+            return
+
+        # ⏭️ NORMAL NEXT FLOW
+        media = queue.get_next(chat_id)
+
+        try:
+            if media and media.message_id:
+                await app.delete_messages(
+                    chat_id=chat_id,
+                    message_ids=media.message_id,
+                    revoke=True,
+                )
+                media.message_id = 0
+        except Exception:
+            pass
+
+        if not media:
+            await self.stop(chat_id)
+            return
 
         _lang = await lang.get_lang(chat_id)
-        msg = await app.send_message(chat_id=chat_id, text=_lang["play_again"])
+        msg = await app.send_message(
+            chat_id=chat_id,
+            text=_lang["play_next"]
+        )
 
-        current.message_id = msg.id
-        return await self.play_media(chat_id, msg, current)
-
-    # ⏭️ NORMAL NEXT FLOW
-    media = queue.get_next(chat_id)
-
-    try:
-        if media and media.message_id:
-            await app.delete_messages(
-                chat_id=chat_id,
-                message_ids=media.message_id,
-                revoke=True,
-            )
-            media.message_id = 0
-    except:
-        pass
-
-    if not media:
-        return await self.stop(chat_id)
-
-    _lang = await lang.get_lang(chat_id)
-    msg = await app.send_message(chat_id=chat_id, text=_lang["play_next"])
-
-    if not media.file_path:
-        media.file_path = await yt.download(media.id, video=media.video)
         if not media.file_path:
-            await self.stop(chat_id)
-            return await msg.edit_text(
-                _lang["error_no_file"].format(config.SUPPORT_CHAT)
-            )
+            media.file_path = await yt.download(media.id, video=media.video)
+            if not media.file_path:
+                await self.stop(chat_id)
+                await msg.edit_text(
+                    _lang["error_no_file"].format(config.SUPPORT_CHAT)
+                )
+                return
 
-    media.message_id = msg.id
-    await self.play_media(chat_id, msg, media)
-
+        media.message_id = msg.id
+        await self.play_media(chat_id, msg, media)
+    
     async def ping(self) -> float:
         pings = [client.ping for client in self.clients]
         return round(sum(pings) / len(pings), 2)
