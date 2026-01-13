@@ -55,25 +55,35 @@ async def track_time():
 async def update_timer(length=10):
     while True:
         await asyncio.sleep(7)
+
         for chat_id in db.active_calls:
             if not await db.playing(chat_id):
                 continue
+
             try:
                 media = queue.get_current(chat_id)
-                duration, message_id = media.duration_sec, media.message_id
+                if not media:
+                    continue
+
+                duration = media.duration_sec
+                message_id = media.message_id
+
                 if not duration or not message_id or not media.time:
                     continue
+
                 played = media.time
                 remaining = duration - played
+
                 pos = min(int((played / duration) * length), length - 1)
-                timer = "—" * pos + "◉" + "—" * (length - pos - 1)
+                bar = "—" * pos + "◉" + "—" * (length - pos - 1)
 
-                 if remaining <= 30:
-                    next = queue.get_next(chat_id, check=True)
-                    if next and not next.file_path:
-                        next.file_path = await yt.download(next.id, video=next.video)
+                # ⏳ Preload next
+                if remaining <= 30:
+                    nxt = queue.get_next(chat_id, check=True)
+                    if nxt and not nxt.file_path:
+                        nxt.file_path = await yt.download(nxt.id, video=nxt.video)
 
-                # 🔁 LOOP / NEXT LOGIC (FIXED INDENTATION)
+                # 🔁 LOOP / NEXT
                 if remaining < 1:
                     loop_count = await get_loop(chat_id)
 
@@ -93,23 +103,24 @@ async def update_timer(length=10):
                     await unnati.play_next(chat_id)
                     continue
 
-                remove = False
                 timer = (
                     f"{time.strftime('%M:%S', time.gmtime(played))}"
-                    f" | {timer} | -{time.strftime('%M:%S', time.gmtime(remaining))}"
+                    f" | {bar} | -{time.strftime('%M:%S', time.gmtime(remaining))}"
                 )
-                
+
                 await app.edit_message_reply_markup(
                     chat_id=chat_id,
                     message_id=message_id,
                     reply_markup=buttons.controls(
-                        chat_id=chat_id, timer=timer, remove=remove
+                        chat_id=chat_id,
+                        timer=timer,
+                        remove=False,
                     ),
                 )
-            except:
-                pass
 
-
+            except Exception as e:
+                print("TIMER ERROR:", e)
+                
 
 async def vc_watcher(sleep=15):
     while True:
