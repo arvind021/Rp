@@ -53,7 +53,7 @@
     "lang_changed": "The language of the current chat has been changed to: <i>{0}</i>",
     "lang_same": "The language of the current chat is already set to: {0}",
     "log_fetch": "Fetching logs...",
-    "help_insta": "📸 Instagram Downloader\n\nSend any Instagram link:\n• Post\n• Reel\n• Profile\n\nBot will auto-download media.",
+    "help_Insta": "📸 Instagram Downloader\n\nSend any Instagram link:\n• Post\n• Reel\n• Profile\n\nBot will auto-download media.",
     "log_not_found": "Log file doesn't exist.",
     "log_sent": "Log file of {0}",
     "log_chat": "<u><b>New Chat Log</b></u>\n\n<b>Chat:</b> <code>{0}</code> | {1}\n<b>User:</b> <code>{2}</code> | {3}",
