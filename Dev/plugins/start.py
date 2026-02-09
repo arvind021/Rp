@@ -38,6 +38,7 @@ async def start(_, message: types.Message):
         reply_markup=key,
         quote=not private,
         parse_mode=enums.ParseMode.HTML
+        effect_id=5159385139981059251
     )
 
     if private:
