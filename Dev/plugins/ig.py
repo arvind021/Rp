@@ -10,7 +10,7 @@ from Dev import app as a sex
 
 logger = logging.getLogger(__name__)
 
-COOKIE_URL = "https://batbin.me/abced"
+COOKIE_URL = "https://batbin.me/commemorations"
 
 async def fetch_cookies(url):
     """Batbin link se cookies nikalne ke liye"""
