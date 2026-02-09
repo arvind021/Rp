@@ -12,7 +12,7 @@ class Config:
         self.MONGO_URL = "mongodb+srv://Krishna:pss968048@cluster0.4rfuzro.mongodb.net/?retryWrites=true&w=majority"
 
         self.LOGGER_ID = -1002843633996
-        self.OWNER_ID = 8319024738
+        self.OWNER_ID = 8472473677
 
         self.DURATION_LIMIT = int(getenv("DURATION_LIMIT", 600000000)) * 600000000
         self.QUEUE_LIMIT = int(getenv("QUEUE_LIMIT", 200000000000))
