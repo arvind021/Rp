@@ -28,9 +28,10 @@ class YouTube:
 
     def get_cookies(self):
         if not self.checked:
-            for file in os.listdir("Dev/cookies"):
-                if file.endswith(".txt"):
-                    self.cookies.append(file)
+            if os.path.exists("Dev/cookies"):
+                for file in os.listdir("Dev/cookies"):
+                    if file.endswith(".txt"):
+                        self.cookies.append(file)
             self.checked = True
         if not self.cookies:
             if not self.warned:
@@ -41,6 +42,8 @@ class YouTube:
 
     async def save_cookies(self, urls: list[str]) -> None:
         logger.info("Saving cookies from urls...")
+        if not os.path.exists("Dev/cookies"):
+            os.makedirs("Dev/cookies")
         async with aiohttp.ClientSession() as session:
             for url in urls:
                 path = f"Dev/cookies/cookie{random.randint(10000, 99999)}.txt"
@@ -122,11 +125,15 @@ class YouTube:
 
     async def download(self, video_id: str, video: bool = False) -> Optional[str]:
         url = self.base + video_id
+        # extension handling
         ext = "mp4" if video else "webm"
         filename = f"downloads/{video_id}.{ext}"
 
         if Path(filename).exists():
             return filename
+
+        if not os.path.exists("downloads"):
+            os.makedirs("downloads")
 
         cookie = self.get_cookies()
         base_opts = {
@@ -143,21 +150,24 @@ class YouTube:
         if video:
             ydl_opts = {
                 **base_opts,
-                "format": "(bestvideo[height<=?720][width<=?1280][ext=mp4])+(bestaudio)",
+                # Flexible format: Try 720p MP4 first, then any MP4, then best available
+                "format": "bestvideo[height<=?720][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
                 "merge_output_format": "mp4",
             }
         else:
             ydl_opts = {
                 **base_opts,
-                "format": "bestaudio[ext=webm][acodec=opus]",
+                # Flexible audio: Try webm/opus first, then any best audio
+                "format": "bestaudio[ext=webm][acodec=opus]/bestaudio/best",
             }
 
         def _download():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 try:
                     ydl.download([url])
-                except (yt_dlp.utils.DownloadError, yt_dlp.utils.ExtractorError):
-                    if cookie in self.cookies:
+                except (yt_dlp.utils.DownloadError, yt_dlp.utils.ExtractorError) as e:
+                    logger.error(f"YT-DLP Error: {e}")
+                    if cookie and cookie in self.cookies:
                         self.cookies.remove(cookie)
                     return None
                 except Exception as ex:
@@ -166,3 +176,4 @@ class YouTube:
             return filename
 
         return await asyncio.to_thread(_download)
+            
