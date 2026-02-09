@@ -30,12 +30,13 @@ async def start(_, message: types.Message):
         else message.lang["start_gp"].format(app.name)
     )
 
-    key = buttons.start_key(message.lang, private)
+        key = buttons.start_key(message.lang, private)
     await message.reply_video(
         video="https://files.catbox.moe/wqna1t.mp4",
         caption=_text,
         reply_markup=key,
         quote=not private,
+        parse_mode=enums.ParseMode.HTML
     )
 
     if private:
