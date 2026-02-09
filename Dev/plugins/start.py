@@ -30,7 +30,6 @@ async def start(_, message: types.Message):
         else message.lang["start_gp"].format(app.name)
     )
 
-    # In lines ke aage se extra spaces hata diye gaye hain
     key = buttons.start_key(message.lang, private)
     await message.reply_video(
         video="https://files.catbox.moe/wqna1t.mp4",
