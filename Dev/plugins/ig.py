@@ -40,7 +40,7 @@ async def insta_pyro_handler(client: Client, message: Message):
     except Exception:
         pass
 
-    alert = await message.reply("**Processing...**")
+    alert = await message.reply("**Processing**....")
     
     cookie_path = await fetch_cookies(COOKIE_URL)
     file_path = f"insta_{message.id}.mp4"
@@ -69,7 +69,7 @@ async def insta_pyro_handler(client: Client, message: Message):
         duration = int(info.get('duration', 0))
         width = info.get('width', 0)
         height = info.get('height', 0)
-        caption = "**@toxic_bots**"
+        caption = "@Toxic_Bots 🍃🌲"
 
         await client.send_video(
             chat_id=chat_id,
