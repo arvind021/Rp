@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 COOKIE_URL = "https://batbin.me/commemorations"
 
 async def fetch_cookies(url):
-    """Batbin link se cookies nikalne ke liye"""
+    """Batbin link cookies"""
     if "batbin.me/" in url and "/raw/" not in url:
         url = url.replace("batbin.me/", "batbin.me/raw/")
     
