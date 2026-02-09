@@ -93,14 +93,12 @@ class YouTube:
     async def download(self, video_id: str, video: bool = False) -> Optional[str]:
         url = self.base + video_id
         
-        # Determine strict output filename to check existence
-        # This helps in instant return if file is already there
+        # Fast existence check
         if video:
-            filename = f"downloads/{video_id}.mp4"
-            if Path(filename).exists():
-                return filename
+            if Path(f"downloads/{video_id}.mp4").exists():
+                return f"downloads/{video_id}.mp4"
         else:
-            # Check common audio formats
+            # Check all likely audio formats
             for ext in ["m4a", "webm", "mp3", "opus"]:
                 if Path(f"downloads/{video_id}.{ext}").exists():
                     return f"downloads/{video_id}.{ext}"
@@ -112,12 +110,11 @@ class YouTube:
             "geo_bypass": True,
             "nocheckcertificate": True,
             "ignoreerrors": True,
-            "no_warnings": True,
-            # CRITICAL FIX: Use 'tv' client.
-            # TV clients rarely trigger "Sign in to confirm you are not a bot"
+            # CRITICAL FIX: 'android_creator' is less strict on logins.
+            # 'web' is the fallback (browser mode) which rarely asks for login.
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["tv"], 
+                    "player_client": ["android_creator", "web"],
                     "skip": ["dash", "hls"],
                 }
             },
@@ -132,9 +129,8 @@ class YouTube:
         else:
             ydl_opts = {
                 **base_opts,
-                # 'bestaudio/best' is safest and fastest. 
-                # It usually grabs m4a or opus which plays instantly.
-                "format": "bestaudio/best",
+                # Prioritize m4a (fastest, no conversion) -> then best available
+                "format": "bestaudio[ext=m4a]/bestaudio/best",
             }
 
         def _download():
@@ -145,7 +141,8 @@ class YouTube:
                         return None
                     return ydl.prepare_filename(info)
                 except Exception as ex:
-                    logger.error(f"Download Error: {ex}")
+                    logger.error(f"Download Failed: {ex}")
                     return None
 
         return await asyncio.to_thread(_download)
+                
