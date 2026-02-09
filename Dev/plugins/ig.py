@@ -6,7 +6,7 @@ import yt_dlp
 import logging
 from pyrogram import Client, filters
 from pyrogram.types import Message
-from Dev import app as a sex
+from Dev import app as sex
 
 logger = logging.getLogger(__name__)
 
