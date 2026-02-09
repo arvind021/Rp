@@ -40,7 +40,7 @@ async def insta_pyro_handler(client: Client, message: Message):
     except Exception:
         pass
 
-    alert = await message.reply("**Processing**....")
+    alert = await message.reply("𝘋𝘰𝘸𝘯𝘭𝘰𝘢𝘥𝘪𝘯𝘨...🌿")
     
     cookie_path = await fetch_cookies(COOKIE_URL)
     file_path = f"insta_{message.id}.mp4"
