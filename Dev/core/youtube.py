@@ -125,7 +125,6 @@ class YouTube:
 
     async def download(self, video_id: str, video: bool = False) -> Optional[str]:
         url = self.base + video_id
-        # extension handling
         ext = "mp4" if video else "webm"
         filename = f"downloads/{video_id}.{ext}"
 
@@ -136,7 +135,14 @@ class YouTube:
             os.makedirs("downloads")
 
         cookie = self.get_cookies()
-        base_opts = {
+        
+        # Flexible formatting logic to avoid "Format not available" error
+        if video:
+            format_spec = "bestvideo[height<=?720][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
+        else:
+            format_spec = "bestaudio[ext=webm][acodec=opus]/bestaudio/best"
+
+        ydl_opts = {
             "outtmpl": "downloads/%(id)s.%(ext)s",
             "quiet": True,
             "noplaylist": True,
@@ -145,35 +151,30 @@ class YouTube:
             "overwrites": False,
             "nocheckcertificate": True,
             "cookiefile": cookie,
+            "format": format_spec,
         }
 
         if video:
-            ydl_opts = {
-                **base_opts,
-                # Flexible format: Try 720p MP4 first, then any MP4, then best available
-                "format": "bestvideo[height<=?720][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-                "merge_output_format": "mp4",
-            }
-        else:
-            ydl_opts = {
-                **base_opts,
-                # Flexible audio: Try webm/opus first, then any best audio
-                "format": "bestaudio[ext=webm][acodec=opus]/bestaudio/best",
-            }
+            ydl_opts["merge_output_format"] = "mp4"
 
         def _download():
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                try:
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     ydl.download([url])
-                except (yt_dlp.utils.DownloadError, yt_dlp.utils.ExtractorError) as e:
-                    logger.error(f"YT-DLP Error: {e}")
+                return filename
+            except Exception as e:
+                logger.error(f"First attempt failed: {e}. Retrying with generic format...")
+                # FALLBACK: Try again with zero restrictions if the specific format fails
+                try:
+                    ydl_opts["format"] = "best"
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl_retry:
+                        ydl_retry.download([url])
+                    return filename
+                except Exception as final_e:
+                    logger.error(f"Final download fail for {video_id}: {final_e}")
                     if cookie and cookie in self.cookies:
                         self.cookies.remove(cookie)
                     return None
-                except Exception as ex:
-                    logger.error("Download failed: %s", ex)
-                    return None
-            return filename
 
         return await asyncio.to_thread(_download)
             
