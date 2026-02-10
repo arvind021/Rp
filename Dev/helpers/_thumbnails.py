@@ -1,13 +1,10 @@
 import os
-import random
 import asyncio
 import aiohttp
 from PIL import (
     Image, ImageDraw, ImageEnhance,
-    ImageFilter, ImageFont, ImageOps, ImageSequence
+    ImageFilter, ImageFont, ImageOps
 )
-
-# Aapke existing modules
 from Dev import config
 from Dev.helpers import Track
 
@@ -15,52 +12,43 @@ class Thumbnail:
     def __init__(self):
         self.width = 1280
         self.height = 720
-        # Neon & Dark Theme Colors
-        self.color_bg = (15, 15, 25)
+        
+        # --- COLORS ---
+        self.color_bg = (10, 10, 15)
         self.color_white = (255, 255, 255)
-        self.color_grey = (180, 180, 180)
-        self.color_accent = (0, 255, 213)  # Cyberpunk Cyan
-        self.color_secondary = (255, 0, 110) # Neon Pink for contrast
+        self.color_grey = (160, 160, 160)
+        self.color_accent = (255, 46, 99)    # Neon Red/Pink for "Toxic"
+        self.color_primary = (0, 255, 213)   # Cyan
+        self.color_lyrics_dim = (255, 255, 255, 100) # Faded lyrics
+        self.color_lyrics_active = (255, 255, 255, 255) # Bright lyrics
 
+        # --- FONTS ---
+        # Ensure paths are correct, fallback to default if missing
         try:
-            # Font paths check kar lena
-            self.font_title = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 55)
-            self.font_artist = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 35)
-            self.font_small = ImageFont.truetype("Dev/helpers/Inter-Light.ttf", 24)
+            self.font_title = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 45)
+            self.font_artist = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 30)
+            self.font_lyrics = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 55) # Big Lyrics font
+            self.font_small = ImageFont.truetype("Dev/helpers/Inter-Light.ttf", 22)
         except:
             self.font_title = ImageFont.load_default()
             self.font_artist = ImageFont.load_default()
+            self.font_lyrics = ImageFont.load_default()
             self.font_small = ImageFont.load_default()
 
     async def save_thumb(self, output_path: str, url: str) -> str:
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
-                data = await resp.read()
                 with open(output_path, "wb") as f:
-                    f.write(data)
+                    f.write(await resp.read())
             return output_path
 
-    def make_circle(self, img):
-        """Image ko gol (circle) shape me katne ke liye"""
+    def make_rounded(self, img, radius=30):
         mask = Image.new("L", img.size, 0)
         draw = ImageDraw.Draw(mask)
-        draw.ellipse((0, 0, img.size[0], img.size[1]), fill=255)
+        draw.rounded_rectangle((0, 0, img.size[0], img.size[1]), radius=radius, fill=255)
         output = ImageOps.fit(img, mask.size, centering=(0.5, 0.5))
         output.putalpha(mask)
         return output
-
-    def draw_visualizer(self, draw, x, y, width, height, color):
-        """Random music bars generate karne ke liye"""
-        num_bars = 20
-        gap = 8
-        bar_w = (width - (gap * (num_bars - 1))) / num_bars
-        
-        for i in range(num_bars):
-            bar_h = random.randint(10, height) # Random height for animation
-            bx = x + i * (bar_w + gap)
-            by = y + height - bar_h
-            # Draw glow bar
-            draw.rectangle([bx, by, bx + bar_w, y + height], fill=color)
 
     async def generate(self, song: Track) -> str:
         try:
@@ -68,112 +56,123 @@ class Thumbnail:
                 os.makedirs("cache")
 
             temp_dl = f"cache/temp_{song.id}.jpg"
-            # Output ab GIF hoga
-            output_gif = f"cache/{song.id}_anim.gif"
+            output_gif = f"cache/{song.id}_lyrics.gif"
 
             if os.path.exists(output_gif):
                 return output_gif
 
             await self.save_thumb(temp_dl, song.thumbnail)
 
-            # 1. Prepare Base Art
+            # 1. Prepare Base Background
             original_art = Image.open(temp_dl).convert("RGBA")
             
-            # --- Background Blur Effect ---
-            screen_w, screen_h = 1280, 720
-            bg = original_art.resize((screen_w, screen_h), Image.Resampling.LANCZOS)
-            bg = bg.filter(ImageFilter.GaussianBlur(40)) # Heavy blur
-            bg = ImageEnhance.Brightness(bg).enhance(0.4) # Darken
+            # Dark blurred background
+            base_bg = original_art.resize((1280, 720), Image.Resampling.LANCZOS)
+            base_bg = base_bg.filter(ImageFilter.GaussianBlur(50))
+            base_bg = ImageEnhance.Brightness(base_bg).enhance(0.3) # Darker for contrast
 
-            # --- Prepare Vinyl Record Art ---
-            art_size = (380, 380)
-            vinyl_art = ImageOps.fit(original_art, art_size, method=Image.Resampling.LANCZOS)
-            vinyl_art = self.make_circle(vinyl_art)
+            # 2. Prepare Left Side Art (Small & Rounded)
+            art_size = (350, 350)
+            cover_art = ImageOps.fit(original_art, art_size, method=Image.Resampling.LANCZOS)
+            cover_art = self.make_rounded(cover_art, radius=40)
             
-            # Vinyl Disc Background (Black Circle)
-            vinyl_disc = Image.new("RGBA", (400, 400), (0, 0, 0, 0))
-            draw_disc = ImageDraw.Draw(vinyl_disc)
-            draw_disc.ellipse((0, 0, 400, 400), fill=(10, 10, 10, 255), outline=(30,30,30), width=2)
-            
-            # Paste Art on Disc center
-            vinyl_disc.paste(vinyl_art, (10, 10), vinyl_art)
+            # Art Shadow (Glow)
+            shadow = Image.new("RGBA", (390, 390), (0,0,0,0))
+            shadow_draw = ImageDraw.Draw(shadow)
+            shadow_draw.rounded_rectangle((20, 20, 370, 370), radius=40, fill=(0,0,0,180))
+            shadow = shadow.filter(ImageFilter.GaussianBlur(15))
 
-            # --- Text Info ---
+            # 3. Text Preparation
             title = song.title
-            if len(title) > 20: title = title[:20] + "..."
-            
-            artist = "Toxic Bots" # Ya song.artist
-            
+            if len(title) > 18: title = title[:18] + "..."
+            duration_text = "00:45 / 03:20" # Example, you can use song.duration
+
+            # FAKE LYRICS LIST (To simulate the right side animation)
+            # Agar real lyrics nahi hain, toh ye vibe banayega
+            lyrics_lines = [
+                "",
+                "Now Playing...",
+                f"{song.title}",
+                "Feel the beat",
+                "Toxic Bots Music",
+                "Stereo Sound 🎧",
+                "Vibe check passed",
+                "Volume up 🔊",
+                "Enjoy the rhythm",
+                "Loading next verse...",
+                ""
+            ]
+
             frames = []
-            total_frames = 15  # Kam frames rakhna taaki file size chota rahe aur jaldi bane
+            total_frames = 20 # Animation smoothness
+            scroll_speed = 6  # Pixels to move per frame
 
             # =========================
             # 🎬 ANIMATION LOOP
             # =========================
             for i in range(total_frames):
-                # Create frame base
-                frame = bg.copy()
+                frame = base_bg.copy()
                 draw = ImageDraw.Draw(frame)
 
-                # 1. Draw Card Background (Glass effect)
-                overlay = Image.new("RGBA", (self.width, self.height), (0,0,0,0))
-                overlay_draw = ImageDraw.Draw(overlay)
-                overlay_draw.rounded_rectangle((50, 50, 1230, 670), radius=30, fill=(0, 0, 0, 100))
-                overlay_draw.rounded_rectangle((50, 50, 1230, 670), radius=30, outline=self.color_accent, width=2)
-                frame = Image.alpha_composite(frame, overlay)
-                draw = ImageDraw.Draw(frame) # Re-init draw on composite
+                # --- LEFT SIDE LAYOUT ---
+                left_margin = 80
+                art_y = 100
 
-                # 2. Rotate Vinyl (Spin Animation)
-                # Har frame me 360/total_frames degree ghumao
-                rotation = (360 / total_frames) * i
-                rotated_vinyl = vinyl_disc.rotate(rotation, resample=Image.Resampling.BICUBIC)
+                # Draw Shadow & Art
+                frame.paste(shadow, (left_margin - 20, art_y - 20), shadow)
+                frame.paste(cover_art, (left_margin, art_y), cover_art)
+
+                # Text Below Art
+                text_start_y = art_y + 350 + 40
                 
-                # Vinyl Shadow
-                shadow_x, shadow_y = 120, 160
-                draw.ellipse((shadow_x-10, shadow_y+10, shadow_x+410, shadow_y+420), fill=(0,0,0,150))
-                frame.paste(rotated_vinyl, (shadow_x, shadow_y), rotated_vinyl)
-
-                # 3. Draw Text
-                text_x = 600
-                text_y = 180
-                draw.text((text_x, text_y), title, font=self.font_title, fill=self.color_white)
-                draw.text((text_x, text_y + 70), artist, font=self.font_artist, fill=self.color_accent)
-
-                # 4. Animated Visualizer (Fake Spectrum)
-                # Ye har frame me random height banayega
-                self.draw_visualizer(draw, text_x, text_y + 140, 500, 60, self.color_secondary)
-
-                # 5. Moving Progress Bar
-                bar_x = text_x
-                bar_y = text_y + 240
-                bar_len = 500
+                # Title
+                draw.text((left_margin, text_start_y), title, font=self.font_title, fill=self.color_white)
                 
-                # Progress calculation (Loop simulation)
-                progress_pct = (i + 1) / total_frames
-                current_bar_w = int(bar_len * (0.3 + (progress_pct * 0.1))) # Thoda sa move karega 30% to 40%
+                # Branding (Toxic Bots)
+                draw.text((left_margin, text_start_y + 60), "Toxic Bots", font=self.font_artist, fill=self.color_accent)
+                
+                # Duration Icon & Text
+                draw.rounded_rectangle((left_margin, text_start_y + 110, left_margin + 160, text_start_y + 145), radius=10, fill=(255,255,255,30))
+                draw.text((left_margin + 20, text_start_y + 115), duration_text, font=self.font_small, fill=self.color_primary)
 
-                draw.line([(bar_x, bar_y), (bar_x + bar_len, bar_y)], fill=(60, 60, 60), width=6)
-                draw.line([(bar_x, bar_y), (bar_x + current_bar_w, bar_y)], fill=self.color_accent, width=6)
-                
-                # Dot with Glow
-                dot_x = bar_x + current_bar_w
-                draw.ellipse((dot_x - 8, bar_y - 8, dot_x + 8, bar_y + 8), fill=self.color_white)
-                
-                # Time Text
-                draw.text((bar_x, bar_y + 20), "1:20", font=self.font_small, fill=self.color_grey)
-                draw.text((bar_x + bar_len - 50, bar_y + 20), "3:45", font=self.font_small, fill=self.color_grey)
+                # Separator Line (Vertical)
+                draw.line([(550, 100), (550, 620)], fill=(255,255,255,50), width=2)
+
+                # --- RIGHT SIDE (SCROLLING LYRICS) ---
+                # Hum lyrics ko crop karne ke liye ek transparent layer banayenge
+                lyrics_layer = Image.new("RGBA", (700, 600), (0,0,0,0))
+                lyric_draw = ImageDraw.Draw(lyrics_layer)
+
+                lyric_x = 20
+                start_y = 200 - (i * scroll_speed) # Scrolling logic
+
+                for idx, line in enumerate(lyrics_lines):
+                    line_y = start_y + (idx * 90) # Gap between lines
+                    
+                    # Highlighting effect (Center line is bright, others dim)
+                    # Simple simulation: Middle of the box is roughly y=300
+                    if 250 < line_y < 350:
+                        color = self.color_lyrics_active
+                        font_size = 60 # Active line slightly bigger? (Optional, requires complex font handling)
+                    else:
+                        color = self.color_lyrics_dim
+                    
+                    lyric_draw.text((lyric_x, line_y), line, font=self.font_lyrics, fill=color)
+
+                # Paste Lyrics on Frame (Right side)
+                frame.paste(lyrics_layer, (600, 80), lyrics_layer)
 
                 frames.append(frame)
 
             # =========================
-            # 💾 SAVE AS GIF
+            # 💾 SAVE ANIMATION
             # =========================
             frames[0].save(
                 output_gif,
                 save_all=True,
                 append_images=frames[1:],
                 optimize=True,
-                duration=100, # Speed of animation (ms)
+                duration=120,
                 loop=0
             )
 
@@ -183,6 +182,6 @@ class Thumbnail:
             return output_gif
 
         except Exception as e:
-            print(f"Animation Error: {e}")
+            print(f"Thumbnail Error: {e}")
             return config.DEFAULT_THUMB
                 
