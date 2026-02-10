@@ -1,5 +1,4 @@
 import re
-
 from pyrogram import filters, types
 
 from Dev import unnati, app, db, lang, queue, tg, yt
@@ -27,7 +26,11 @@ async def _controls(_, query: types.CallbackQuery):
 
     if action == "status":
         return await query.answer()
+    
     await query.answer(query.lang["processing"], show_alert=True)
+
+    status = None
+    reply = None
 
     if action == "pause":
         if not await db.playing(chat_id):
@@ -92,7 +95,8 @@ async def _controls(_, query: types.CallbackQuery):
 
     try:
         if action in ["skip", "replay", "stop"]:
-            await query.message.reply_text(reply, quote=False)
+            if reply:
+                await query.message.reply_text(reply, quote=False)
             await query.message.delete()
         else:
             mtext = re.sub(
@@ -104,31 +108,48 @@ async def _controls(_, query: types.CallbackQuery):
             keyboard = buttons.controls(
                 chat_id, status=status if action != "resume" else None
             )
-        await query.edit_message_text(
-            f"{mtext}\n\n<blockquote>{reply}</blockquote>", reply_markup=keyboard
-        )
-    except:
-        pass
+            if reply:
+                await query.edit_message_text(
+                    f"{mtext}\n\n<blockquote>{reply}</blockquote>", reply_markup=keyboard
+                )
+            else:
+                 await query.edit_message_reply_markup(reply_markup=keyboard)
+    except Exception as e:
+        print(f"Control Error: {e}")
 
 
-@app.on_callback_query(filters.regex("help") & ~app.bl_users)
+@app.on_callback_query(filters.regex(r"^help") & ~app.bl_users)
 @lang.language()
 async def _help(_, query: types.CallbackQuery):
     data = query.data.split()
-    if len(data) == 1:
-        return await query.answer(url=f"https://t.me/{app.username}?start=help")
 
-    if data[1] == "back":
-        return await query.edit_message_text(
-            text=query.lang["help_menu"], reply_markup=buttons.help_markup(query.lang)
+    if "close" in data:
+        try:
+            await query.message.delete()
+        except:
+            pass
+        return
+
+    if len(data) == 1 or data[1] == "back":
+        text = query.lang["help_text"]
+        keyboard = buttons.help_markup(query.lang)
+    
+    else:
+        key = f"help_{data[1]}"
+        if key in query.lang:
+            text = query.lang[key]
+            keyboard = buttons.help_markup(query.lang, back=True)
+        else:
+            text = query.lang["help_text"]
+            keyboard = buttons.help_markup(query.lang)
+
+    try:
+        await query.edit_message_text(
+            text=text,
+            reply_markup=keyboard,
         )
-    if len(data) > 1 and data[1] == "close":
-        return await query.message.delete()
-        
-    await query.edit_message_text(
-        text=query.lang[f"help_{data[1]}"],
-        reply_markup=buttons.help_markup(query.lang, True),
-    )
+    except Exception as e:
+        print(f"Help Edit Error: {e}")
 
 
 @app.on_callback_query(filters.regex("settings") & ~app.bl_users)
@@ -138,6 +159,7 @@ async def _settings_cb(_, query: types.CallbackQuery):
     cmd = query.data.split()
     if len(cmd) == 1:
         return await query.answer()
+    
     await query.answer(query.lang["processing"], show_alert=True)
 
     chat_id = query.message.chat.id
@@ -149,8 +171,9 @@ async def _settings_cb(_, query: types.CallbackQuery):
         _delete = not _delete
         await db.set_cmd_delete(chat_id, _delete)
     elif cmd[1] == "play":
-        await db.set_play_mode(chat_id, _admin)
         _admin = not _admin
+        await db.set_play_mode(chat_id, _admin)
+        
     await query.edit_message_reply_markup(
         reply_markup=buttons.settings_markup(
             query.lang,
@@ -159,4 +182,5 @@ async def _settings_cb(_, query: types.CallbackQuery):
             _language,
             chat_id,
         )
-    )
+            )
+            
