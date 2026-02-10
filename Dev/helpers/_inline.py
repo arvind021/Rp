@@ -38,7 +38,7 @@ class Inline:
                     self.ikb(text="‣‣I", callback_data=f"controls skip {chat_id}"),
                     self.ikb(text="▢", callback_data=f"controls stop {chat_id}"),
                 ],
-                [   self.ikb(text="close", callback_data="help close")]
+                [   self.ikb(text="ᴄʟᴏꜱᴇ", callback_data="help close")]
             )
         return self.ikm(keyboard)
 
@@ -48,8 +48,8 @@ class Inline:
         if back:
             rows = [
                 [
-                    self.ikb(text=_lang["back"], callback_data="help back"),
-                    self.ikb(text=_lang["close"], callback_data="help close"),
+                    self.ikb(text="back", callback_data="help back"),
+                    self.ikb(text="close", callback_data="help close"),
                 ]
             ]
         else:
