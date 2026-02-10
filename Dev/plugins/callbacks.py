@@ -120,30 +120,28 @@ async def _controls(_, query: types.CallbackQuery):
 @app.on_callback_query(filters.regex(r"^help") & ~app.bl_users)
 @lang.language()
 async def _help(_, query: types.CallbackQuery):
-    return await query.answer(
-        url=f"https://t.me/{app.username}?start=help",
-        show_alert=True
-    )
+    data = query.data.split()
     
     if "close" in data:
         try:
-            await query.message.delete()
+            return await query.message.delete()
         except:
-            pass
-        return
+            return
 
-    if len(data) == 1 or data[1] == "back":
-        text = query.lang["help_menu"]
+    if len(data) == 1:
+        return await query.answer(
+            url=f"https://t.me/{app.username}?start=help",
+            show_alert=True
+        )
+    if data[1] == "back":
+        text = query.lang.get("help_menu", "<b>MAIN HELP MENU</b>")
         keyboard = buttons.help_markup(query.lang)
     
     else:
-        key = f"help_{data[1]}"
-        if key in query.lang:
-            text = query.lang[key]
-            keyboard = buttons.help_markup(query.lang, back=True)
-        else:
-            text = query.lang["help_menu"]
-            keyboard = buttons.help_markup(query.lang)
+        topic = data[1]
+        key = f"help_{topic}"
+        text = query.lang.get(key, f"Details for <b>{topic}</b> not found in language file.")
+        keyboard = buttons.help_markup(query.lang, back=True)
 
     try:
         await query.edit_message_text(
@@ -152,6 +150,8 @@ async def _help(_, query: types.CallbackQuery):
         )
     except Exception as e:
         print(f"Help Edit Error: {e}")
+        await query.answer()
+        
 
 
 @app.on_callback_query(filters.regex("settings") & ~app.bl_users)
