@@ -5,35 +5,49 @@ from PIL import (
     Image, ImageDraw, ImageEnhance,
     ImageFilter, ImageFont, ImageOps
 )
+import lyricsgenius  # pip install lyricsgenius
+
 from Dev import config
 from Dev.helpers import Track
+
+# ==========================================
+# ⚙️ CONFIGURATION (API KEY YAHAN DAALO)
+# ==========================================
+GENIUS_API_TOKEN = "YAHAN_APNA_GENIUS_TOKEN_PASTE_KARO"
+# Agar token nahi hai toh ise empty chhod do (""), fake lyrics chalengi.
 
 class Thumbnail:
     def __init__(self):
         self.width = 1280
         self.height = 720
         
-        # --- COLORS ---
+        # --- PRO COLORS ---
         self.color_bg = (10, 10, 15)
         self.color_white = (255, 255, 255)
-        self.color_grey = (160, 160, 160)
-        self.color_accent = (255, 46, 99)    # Neon Red/Pink for "Toxic"
-        self.color_primary = (0, 255, 213)   # Cyan
-        self.color_lyrics_dim = (255, 255, 255, 100) # Faded lyrics
-        self.color_lyrics_active = (255, 255, 255, 255) # Bright lyrics
+        self.color_grey = (180, 180, 180)
+        self.color_accent = (255, 20, 147)  # Deep Pink (Toxic Vibe)
+        self.color_primary = (0, 255, 255) # Cyan for Duration
 
-        # --- FONTS ---
-        # Ensure paths are correct, fallback to default if missing
+        # --- FONTS SETUP ---
         try:
-            self.font_title = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 45)
-            self.font_artist = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 30)
-            self.font_lyrics = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 55) # Big Lyrics font
-            self.font_small = ImageFont.truetype("Dev/helpers/Inter-Light.ttf", 22)
+            # Main Bold Font
+            self.font_title = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 50)
+            self.font_artist = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 35)
+            # Lyrics Font (Thoda clean rakhna)
+            self.font_lyrics = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 40)
+            self.font_small = ImageFont.truetype("Dev/helpers/Inter-Light.ttf", 25)
         except:
             self.font_title = ImageFont.load_default()
             self.font_artist = ImageFont.load_default()
             self.font_lyrics = ImageFont.load_default()
             self.font_small = ImageFont.load_default()
+
+        # Initialize Genius
+        self.genius = None
+        if GENIUS_API_TOKEN and GENIUS_API_TOKEN != "YAHAN_APNA_GENIUS_TOKEN_PASTE_KARO":
+            self.genius = lyricsgenius.Genius(GENIUS_API_TOKEN)
+            self.genius.verbose = False # Logs band karne ke liye
+            self.genius.remove_section_headers = True # [Chorus] wagera hatane ke liye
 
     async def save_thumb(self, output_path: str, url: str) -> str:
         async with aiohttp.ClientSession() as session:
@@ -42,13 +56,34 @@ class Thumbnail:
                     f.write(await resp.read())
             return output_path
 
-    def make_rounded(self, img, radius=30):
-        mask = Image.new("L", img.size, 0)
-        draw = ImageDraw.Draw(mask)
-        draw.rounded_rectangle((0, 0, img.size[0], img.size[1]), radius=radius, fill=255)
-        output = ImageOps.fit(img, mask.size, centering=(0.5, 0.5))
-        output.putalpha(mask)
-        return output
+    def get_lyrics(self, song_name, artist_name):
+        """Lyrics fetch karega, agar fail hua toh fallback dega"""
+        if self.genius:
+            try:
+                # Search song
+                song = self.genius.search_song(song_name, artist_name)
+                if song:
+                    # Lyrics ko clean karo aur lines me todo
+                    lyrics = song.lyrics.split("\n")
+                    # Starting ki faltu lines hatao (jo Genius credits hoti hain)
+                    clean_lyrics = [l for l in lyrics if l.strip() and "Contributors" not in l]
+                    return clean_lyrics[:20] # Sirf top 20 lines lo taaki GIF size na phate
+            except Exception as e:
+                print(f"Lyrics Error: {e}")
+        
+        # Fallback (Agar API nahi hai ya fail ho gayi)
+        return [
+            "Fetching Lyrics...",
+            f"Now Playing: {song_name}",
+            "Toxic Bots Music",
+            "Feel the Rhythm 🎧",
+            "Pure Bass Boost",
+            "Stereo Sound",
+            "Volume Up 🔊",
+            "Vibe Check: Passed",
+            "Live Streaming...",
+            "Enjoy the Music ❤️"
+        ]
 
     async def generate(self, song: Track) -> str:
         try:
@@ -56,123 +91,107 @@ class Thumbnail:
                 os.makedirs("cache")
 
             temp_dl = f"cache/temp_{song.id}.jpg"
-            output_gif = f"cache/{song.id}_lyrics.gif"
+            output_gif = f"cache/{song.id}_live.gif"
 
             if os.path.exists(output_gif):
                 return output_gif
 
             await self.save_thumb(temp_dl, song.thumbnail)
 
-            # 1. Prepare Base Background
+            # 1. LOAD & BLUR BACKGROUND (Smooth Gradient)
             original_art = Image.open(temp_dl).convert("RGBA")
             
-            # Dark blurred background
-            base_bg = original_art.resize((1280, 720), Image.Resampling.LANCZOS)
-            base_bg = base_bg.filter(ImageFilter.GaussianBlur(50))
-            base_bg = ImageEnhance.Brightness(base_bg).enhance(0.3) # Darker for contrast
+            # Resize to Full HD
+            base = original_art.resize((self.width, self.height), Image.Resampling.LANCZOS)
+            # HEAVY Blur for smooth look
+            base = base.filter(ImageFilter.GaussianBlur(radius=50))
+            # Darken it (Overlay black layer)
+            dark_overlay = Image.new("RGBA", base.size, (0, 0, 0, 140))
+            base = Image.alpha_composite(base, dark_overlay)
 
-            # 2. Prepare Left Side Art (Small & Rounded)
-            art_size = (350, 350)
-            cover_art = ImageOps.fit(original_art, art_size, method=Image.Resampling.LANCZOS)
-            cover_art = self.make_rounded(cover_art, radius=40)
+            # 2. LEFT SIDE: ALBUM ART
+            art_size = (380, 380)
+            art = ImageOps.fit(original_art, art_size, method=Image.Resampling.LANCZOS)
             
-            # Art Shadow (Glow)
-            shadow = Image.new("RGBA", (390, 390), (0,0,0,0))
-            shadow_draw = ImageDraw.Draw(shadow)
-            shadow_draw.rounded_rectangle((20, 20, 370, 370), radius=40, fill=(0,0,0,180))
-            shadow = shadow.filter(ImageFilter.GaussianBlur(15))
+            # Rounded Corners for Art
+            mask = Image.new("L", art_size, 0)
+            draw_mask = ImageDraw.Draw(mask)
+            draw_mask.rounded_rectangle((0, 0, art_size[0], art_size[1]), radius=30, fill=255)
+            
+            # Draw Art on Base
+            art_x, art_y = 80, 100
+            base.paste(art, (art_x, art_y), mask)
 
-            # 3. Text Preparation
-            title = song.title
-            if len(title) > 18: title = title[:18] + "..."
-            duration_text = "00:45 / 03:20" # Example, you can use song.duration
+            # 3. TEXT INFO (Left Side)
+            draw_static = ImageDraw.Draw(base)
+            
+            text_x = art_x
+            text_y = art_y + 400
+            
+            # Title
+            title_text = song.title
+            if len(title_text) > 20: title_text = title_text[:20] + "..."
+            draw_static.text((text_x, text_y), title_text, font=self.font_title, fill=self.color_white)
 
-            # FAKE LYRICS LIST (To simulate the right side animation)
-            # Agar real lyrics nahi hain, toh ye vibe banayega
-            lyrics_lines = [
-                "",
-                "Now Playing...",
-                f"{song.title}",
-                "Feel the beat",
-                "Toxic Bots Music",
-                "Stereo Sound 🎧",
-                "Vibe check passed",
-                "Volume up 🔊",
-                "Enjoy the rhythm",
-                "Loading next verse...",
-                ""
-            ]
+            # Branding
+            draw_static.text((text_x, text_y + 60), "Toxic Bots", font=self.font_artist, fill=self.color_accent)
 
+            # Duration (Simple Text, No Ugly Box)
+            draw_static.text((text_x, text_y + 110), "00:00  /  03:45", font=self.font_small, fill=self.color_grey)
+
+            # Vertical Separator Line
+            draw_static.line([(550, 80), (550, 640)], fill=(255, 255, 255, 80), width=2)
+
+            # 4. PREPARE LYRICS
+            # Song name se lyrics nikalo
+            lyrics_list = self.get_lyrics(song.title, "Unknown")
+            
             frames = []
-            total_frames = 20 # Animation smoothness
-            scroll_speed = 6  # Pixels to move per frame
-
+            total_frames = 15  # Total animation frames
+            
             # =========================
             # 🎬 ANIMATION LOOP
             # =========================
+            # Lyrics area coordinates
+            lyric_x = 600
+            lyric_start_y = 600 # Start from bottom
+            
             for i in range(total_frames):
-                frame = base_bg.copy()
+                frame = base.copy()
                 draw = ImageDraw.Draw(frame)
-
-                # --- LEFT SIDE LAYOUT ---
-                left_margin = 80
-                art_y = 100
-
-                # Draw Shadow & Art
-                frame.paste(shadow, (left_margin - 20, art_y - 20), shadow)
-                frame.paste(cover_art, (left_margin, art_y), cover_art)
-
-                # Text Below Art
-                text_start_y = art_y + 350 + 40
                 
-                # Title
-                draw.text((left_margin, text_start_y), title, font=self.font_title, fill=self.color_white)
+                # Header for Lyrics
+                draw.text((lyric_x, 80), "Lyrics", font=self.font_small, fill=self.color_primary)
+
+                # Scroll Logic: Move text up by 'i * speed'
+                scroll_offset = i * 20 
                 
-                # Branding (Toxic Bots)
-                draw.text((left_margin, text_start_y + 60), "Toxic Bots", font=self.font_artist, fill=self.color_accent)
+                # Draw Lyrics Line by Line
+                current_y = 200 - scroll_offset # Initial Y position
                 
-                # Duration Icon & Text
-                draw.rounded_rectangle((left_margin, text_start_y + 110, left_margin + 160, text_start_y + 145), radius=10, fill=(255,255,255,30))
-                draw.text((left_margin + 20, text_start_y + 115), duration_text, font=self.font_small, fill=self.color_primary)
-
-                # Separator Line (Vertical)
-                draw.line([(550, 100), (550, 620)], fill=(255,255,255,50), width=2)
-
-                # --- RIGHT SIDE (SCROLLING LYRICS) ---
-                # Hum lyrics ko crop karne ke liye ek transparent layer banayenge
-                lyrics_layer = Image.new("RGBA", (700, 600), (0,0,0,0))
-                lyric_draw = ImageDraw.Draw(lyrics_layer)
-
-                lyric_x = 20
-                start_y = 200 - (i * scroll_speed) # Scrolling logic
-
-                for idx, line in enumerate(lyrics_lines):
-                    line_y = start_y + (idx * 90) # Gap between lines
-                    
-                    # Highlighting effect (Center line is bright, others dim)
-                    # Simple simulation: Middle of the box is roughly y=300
-                    if 250 < line_y < 350:
-                        color = self.color_lyrics_active
-                        font_size = 60 # Active line slightly bigger? (Optional, requires complex font handling)
+                for line in lyrics_list:
+                    # Fade Effect logic based on Y position
+                    # Center (approx 360) should be bright, Top/Bottom faded
+                    if 250 < current_y < 450:
+                        fill_color = (255, 255, 255, 255) # Bright White
                     else:
-                        color = self.color_lyrics_dim
+                        fill_color = (255, 255, 255, 100) # Dimmed
                     
-                    lyric_draw.text((lyric_x, line_y), line, font=self.font_lyrics, fill=color)
-
-                # Paste Lyrics on Frame (Right side)
-                frame.paste(lyrics_layer, (600, 80), lyrics_layer)
+                    # Draw only if within bounds (Performance optimization)
+                    if 50 < current_y < 680:
+                        draw.text((lyric_x, current_y), line, font=self.font_lyrics, fill=fill_color)
+                    
+                    current_y += 70 # Line spacing
 
                 frames.append(frame)
 
-            # =========================
-            # 💾 SAVE ANIMATION
-            # =========================
+            # Save GIF
             frames[0].save(
                 output_gif,
                 save_all=True,
                 append_images=frames[1:],
                 optimize=True,
-                duration=120,
+                duration=150,
                 loop=0
             )
 
@@ -184,4 +203,4 @@ class Thumbnail:
         except Exception as e:
             print(f"Thumbnail Error: {e}")
             return config.DEFAULT_THUMB
-                
+            
