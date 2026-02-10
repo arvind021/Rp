@@ -8,22 +8,29 @@ from Dev.helpers import Track
 
 class Thumbnail:
     def __init__(self):
-        # 1280x720 Canvas
+        # ये आपके "Music Player" (Screen) की साइज है
         self.width = 1280
         self.height = 720
+        
+        # लैपटॉप इमेज का नाम (आपको ये फोटो अपने फोल्डर में रखनी होगी)
+        self.laptop_bg_path = "laptop.jpg" 
+        
         self.fill = (255, 255, 255)
         self.secondary_fill = (200, 200, 200) 
-        
-        # फॉन्ट लोड करने की कोशिश, अगर नहीं मिले तो डिफ़ॉल्ट
+
+        # Fonts setup
         try:
-            self.font_title = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 60)
-            self.font_artist = ImageFont.truetype("Dev/helpers/Inter-Light.ttf", 40)
+            # बड़े फोंट्स ताकि लैपटॉप स्क्रीन पर साफ़ दिखें
+            self.font_title = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 55)
+            self.font_artist = ImageFont.truetype("Dev/helpers/Inter-Light.ttf", 35)
             self.font_small = ImageFont.truetype("Dev/helpers/Inter-Light.ttf", 25)
+            # "Toxic Bots" ब्रांडिंग के लिए स्टाइलिश फोंट
+            self.font_brand = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 40)
         except:
-            print("Warning: Custom fonts not found, using default.")
             self.font_title = ImageFont.load_default()
             self.font_artist = ImageFont.load_default()
             self.font_small = ImageFont.load_default()
+            self.font_brand = ImageFont.load_default()
 
     async def save_thumb(self, output_path: str, url: str) -> str:
         async with aiohttp.ClientSession() as session:
@@ -31,105 +38,125 @@ class Thumbnail:
                 open(output_path, "wb").write(await resp.read())
             return output_path
 
-    # प्लेयर के बटन (Play, Pause, Next) बनाने का फंक्शन
-    def draw_player_icons(self, draw, center_x, center_y):
-        # Pause Icon (||)
-        draw.rounded_rectangle((center_x - 15, center_y - 25, center_x - 5, center_y + 25), radius=5, fill=self.fill)
-        draw.rounded_rectangle((center_x + 5, center_y - 25, center_x + 15, center_y + 25), radius=5, fill=self.fill)
-
-        # Previous Icon (<<)
-        prev_x = center_x - 100
-        draw.polygon([(prev_x, center_y), (prev_x + 25, center_y - 20), (prev_x + 25, center_y + 20)], fill=self.fill)
-        draw.polygon([(prev_x - 20, center_y), (prev_x + 5, center_y - 20), (prev_x + 5, center_y + 20)], fill=self.fill)
-
-        # Next Icon (>>)
-        next_x = center_x + 100
-        draw.polygon([(next_x, center_y), (next_x - 25, center_y - 20), (next_x - 25, center_y + 20)], fill=self.fill)
-        draw.polygon([(next_x + 20, center_y), (next_x - 5, center_y - 20), (next_x - 5, center_y + 20)], fill=self.fill)
-
-        # Volume Icon
-        vol_x = center_x - 150
-        vol_y = center_y + 100
-        draw.polygon([(vol_x, vol_y), (vol_x + 10, vol_y - 10), (vol_x + 10, vol_y + 10)], fill=self.fill)
-        draw.rectangle((vol_x - 5, vol_y - 5, vol_x, vol_y + 5), fill=self.fill)
-        draw.line([(vol_x + 25, vol_y), (vol_x + 300, vol_y)], fill=self.fill, width=3)
-        draw.ellipse((vol_x + 200, vol_y - 6, vol_x + 212, vol_y + 6), fill=self.fill)
+    # आइकन्स ड्रा करने का फंक्शन (Play, Pause etc)
+    def draw_player_icons(self, draw, start_x, center_y):
+        # यहाँ start_x वो पॉइंट है जहाँ से बटन शुरू होंगे (Right Side)
         
-        # List Icon
-        list_x = center_x + 200
-        list_y = center_y + 100
-        draw.line([(list_x, list_y - 10), (list_x + 30, list_y - 10)], fill=self.fill, width=3)
-        draw.line([(list_x, list_y), (list_x + 30, list_y)], fill=self.fill, width=3)
-        draw.line([(list_x, list_y + 10), (list_x + 30, list_y + 10)], fill=self.fill, width=3)
+        # Previous (<<)
+        prev_x = start_x
+        draw.polygon([(prev_x, center_y), (prev_x + 20, center_y - 15), (prev_x + 20, center_y + 15)], fill=self.fill)
+        draw.polygon([(prev_x + 20, center_y), (prev_x + 40, center_y - 15), (prev_x + 40, center_y + 15)], fill=self.fill)
+
+        # Pause (||) - Center Main Button
+        pause_x = start_x + 80
+        draw.rounded_rectangle((pause_x, center_y - 25, pause_x + 10, center_y + 25), radius=3, fill=self.fill)
+        draw.rounded_rectangle((pause_x + 20, center_y - 25, pause_x + 30, center_y + 25), radius=3, fill=self.fill)
+
+        # Next (>>)
+        next_x = start_x + 150
+        draw.polygon([(next_x + 20, center_y), (next_x, center_y - 15), (next_x, center_y + 15)], fill=self.fill)
+        draw.polygon([(next_x + 40, center_y), (next_x + 20, center_y - 15), (next_x + 20, center_y + 15)], fill=self.fill)
 
     async def generate(self, song: Track) -> str:
         try:
-            # Cache directory check
             if not os.path.exists("cache"):
                 os.makedirs("cache")
 
             temp = f"cache/temp_{song.id}.jpg"
-            output = f"cache/{song.id}_v2.png" # नाम बदल दिया ताकि पुराना cache लोड न हो
-            
-            # अगर पहले से फाइल है तो वही रिटर्न करें
+            output = f"cache/{song.id}_laptop.png"
+
             if os.path.exists(output):
                 return output
 
             await self.save_thumb(temp, song.thumbnail)
             
-            # --- Background Logic ---
+            # --- STEP 1: UI बनाना (जो स्क्रीन के अंदर दिखेगा) ---
             original = Image.open(temp).convert("RGBA")
-            background = original.resize((self.width, self.height), Image.Resampling.LANCZOS)
-            background = background.filter(ImageFilter.GaussianBlur(30))
-            background = ImageEnhance.Brightness(background).enhance(0.40) # थोड़ा डार्क
+            
+            # Background Blur Effect
+            screen = original.resize((self.width, self.height), Image.Resampling.LANCZOS)
+            screen = screen.filter(ImageFilter.GaussianBlur(20))
+            screen = ImageEnhance.Brightness(screen).enhance(0.5) # Dark Background
 
-            # --- Album Art (Left Side) ---
-            # Fallen Style: फोटो लेफ्ट में बड़ी होती है
-            art_size = (500, 500)
+            draw = ImageDraw.Draw(screen)
+
+            # 1. Album Art (Left Side - Big & Rounded)
+            art_size = (450, 450)
             art = ImageOps.fit(original, art_size, method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
             
-            # गोल कोने (Rounded Corners)
+            # Rounded Corners Mask
             mask = Image.new("L", art_size, 0)
             draw_mask = ImageDraw.Draw(mask)
-            draw_mask.rounded_rectangle((0, 0, art_size[0], art_size[1]), radius=40, fill=255)
+            draw_mask.rounded_rectangle((0, 0, art_size[0], art_size[1]), radius=30, fill=255)
             art.putalpha(mask)
             
-            # फोटो को लेफ्ट साइड (x=100, y=110) पर पेस्ट करें
-            background.paste(art, (100, 110), art)
+            # Paste Album Art (Left side padding: 80)
+            screen.paste(art, (80, 135), art)
 
-            # --- Text & Controls (Right Side) ---
-            draw = ImageDraw.Draw(background)
+            # 2. Text Info (Right Side)
+            text_x = 600
             
-            text_x = 650
-            center_control_x = text_x + (1280 - text_x) // 2 
-
-            # Title
+            # "Toxic Bots" Branding (Top Left of Text area - like 'Noor' in reference)
+            draw.text((text_x, 150), "TOXIC BOTS", font=self.font_brand, fill=(255, 20, 147)) # Deep Pink color branding
+            
+            # Song Title
             title = song.title
-            if len(title) > 30:
-                title = title[:30] + "..."
-            draw.text((text_x, 180), title, font=self.font_title, fill=self.fill)
+            if len(title) > 25:
+                title = title[:25] + "..."
+            draw.text((text_x, 220), title, font=self.font_title, fill=self.fill)
             
-            # Artist / Channel Name
+            # Artist Name
             channel = song.channel_name
             if len(channel) > 30:
                 channel = channel[:30] + "..."
-            draw.text((text_x, 260), channel, font=self.font_artist, fill=self.secondary_fill)
+            draw.text((text_x, 290), channel, font=self.font_artist, fill=self.secondary_fill)
 
-            # Progress Bar
-            bar_y = 380
-            draw.line([(text_x, bar_y), (1200, bar_y)], fill=(100, 100, 100), width=5) # Gray Line
-            draw.line([(text_x, bar_y), (text_x + 220, bar_y)], fill=self.fill, width=5) # White Progress
-            draw.ellipse((text_x + 210, bar_y - 8, text_x + 230, bar_y + 8), fill=self.fill) # Dot
+            # 3. Progress Bar
+            bar_start_x = text_x
+            bar_y = 400
+            draw.line([(bar_start_x, bar_y), (1150, bar_y)], fill=(100, 100, 100), width=6) # Grey path
+            draw.line([(bar_start_x, bar_y), (bar_start_x + 180, bar_y)], fill=self.fill, width=6) # White progress
+            draw.ellipse((bar_start_x + 170, bar_y - 8, bar_start_x + 190, bar_y + 8), fill=self.fill) # Dot
 
-            # Duration Times
-            draw.text((text_x, bar_y + 20), "0:00", font=self.font_small, fill=self.fill)
-            draw.text((1140, bar_y + 20), song.duration, font=self.font_small, fill=self.fill)
+            # Duration
+            draw.text((bar_start_x, bar_y + 20), "0:00", font=self.font_small, fill=self.secondary_fill)
+            draw.text((1100, bar_y + 20), song.duration, font=self.font_small, fill=self.secondary_fill)
 
-            # Controls Draw Karen
-            self.draw_player_icons(draw, center_control_x, 520)
+            # 4. Controls (Centered below text)
+            self.draw_player_icons(draw, text_x + 100, 520)
 
-            # Final Save
-            background.save(output)
+            # --- STEP 2: Laptop के अंदर फिट करना ---
+            
+            # चेक करें कि laptop.jpg मौजूद है या नहीं
+            if os.path.exists(self.laptop_bg_path):
+                laptop = Image.open(self.laptop_bg_path).convert("RGBA")
+                
+                # नोट: ये Co-ordinates आपको अपनी laptop photo के हिसाब से बदलने पड़ेंगे
+                # मान लीजिये लैपटॉप की फोटो 1920x1080 है और स्क्रीन एरिया (300, 100) पर शुरू होता है
+                # स्क्रीन को थोड़ा छोटा करके (जैसे 70%) लैपटॉप की स्क्रीन साइज में फिट करें
+                
+                # यहाँ हम मान रहे हैं कि आप एक ऐसी फोटो यूज़ करेंगे जिसमें स्क्रीन सीधी है
+                target_screen_width = 750  # आपकी लैपटॉप इमेज में स्क्रीन की चौड़ाई
+                target_screen_height = 422 # 16:9 ratio maintain
+                
+                # स्क्रीन को रिसाइज करें
+                screen_resized = screen.resize((target_screen_width, target_screen_height), Image.Resampling.LANCZOS)
+                
+                # स्क्रीन को लैपटॉप इमेज पर पेस्ट करें (Co-ordinates X, Y बदलें अपनी फोटो के हिसाब से)
+                # मान लीजिये लैपटॉप इमेज में स्क्रीन (585, 250) पिक्सेल पर शुरू होती है
+                screen_pos_x = 585 
+                screen_pos_y = 250
+                
+                # लैपटॉप पर स्क्रीन पेस्ट करें
+                laptop.paste(screen_resized, (screen_pos_x, screen_pos_y))
+                
+                # फाइनल इमेज सेव करें
+                laptop.save(output)
+            else:
+                # अगर laptop.jpg नहीं मिली तो सिर्फ स्क्रीन वाली इमेज भेज दें
+                print("Warning: laptop.jpg not found. Sending flat UI.")
+                screen.save(output)
+
             if os.path.exists(temp):
                 os.remove(temp)
                 
@@ -137,6 +164,5 @@ class Thumbnail:
             
         except Exception as e:
             print(f"Error generating thumbnail: {e}")
-            # अगर एरर आए तो कम से कम डिफॉल्ट न भेजें, कोशिश करें temp भेजने की
             return config.DEFAULT_THUMB
           
