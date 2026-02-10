@@ -3,7 +3,7 @@ import asyncio
 from pyrogram import enums, errors, types
 
 from Dev import app, config, db, queue, yt
-
+from Dev.helpers import utils
 
 def checkUB(play):
     async def wrapper(_, m: types.Message):
@@ -27,7 +27,7 @@ def checkUB(play):
             len(m.command) > 1 and "-f" in m.command[1]
         )
         video = m.command[0][0] == "v" and config.VIDEO_PLAY
-        url = yt.url(m)
+        url = utils.get_url(m)
         if url and not yt.valid(url):
             return await m.reply_text(m.lang["play_unsupported"])
 
