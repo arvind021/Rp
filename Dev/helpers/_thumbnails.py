@@ -10,21 +10,19 @@ class Thumbnail:
     def __init__(self):
         self.width = 1280
         self.height = 720
-        self.background_path = "Dev/helpers/bg.jpg" 
+        self.background_path = "Dev/helpers/l.jpg" 
 
-        self.text_color = (255, 255, 255) # White
-        self.brand_color = (220, 220, 220) # Light Grey
+        self.color_white = (255, 255, 255)
+        self.color_grey = (180, 180, 180)
+        self.color_accent = (200, 200, 200)
 
-        # --- FONT SIZE FIX (Smaller) ---
         try:
-            # टाइटल का फॉन्ट छोटा किया (50 -> 38)
-            self.font_title = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 38)
-            # ब्रांड का फॉन्ट छोटा किया (35 -> 28)
-            self.font_brand = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 28)
+            self.font_title = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 45)
+            self.font_artist = ImageFont.truetype("Dev/helpers/Raleway-Bold.ttf", 30)
             self.font_small = ImageFont.truetype("Dev/helpers/Inter-Light.ttf", 20)
         except:
             self.font_title = ImageFont.load_default()
-            self.font_brand = ImageFont.load_default()
+            self.font_artist = ImageFont.load_default()
             self.font_small = ImageFont.load_default()
 
     async def save_thumb(self, output_path: str, url: str) -> str:
@@ -33,76 +31,95 @@ class Thumbnail:
                 open(output_path, "wb").write(await resp.read())
             return output_path
 
+    def draw_icons(self, draw, x, y):
+        # Previous Icon
+        draw.polygon([(x, y), (x + 15, y - 10), (x + 15, y + 10)], fill=self.color_white)
+        draw.polygon([(x + 15, y), (x + 30, y - 10), (x + 30, y + 10)], fill=self.color_white)
+        
+        # Pause Icon (Center)
+        px, py = x + 70, y
+        draw.rounded_rectangle((px, py - 15, px + 8, py + 15), radius=2, fill=self.color_white)
+        draw.rounded_rectangle((px + 16, py - 15, px + 24, py + 15), radius=2, fill=self.color_white)
+
+        # Next Icon
+        nx, ny = x + 130, y
+        draw.polygon([(nx, ny - 10), (nx + 15, ny), (nx, ny + 10)], fill=self.color_white)
+        draw.polygon([(nx + 15, ny - 10), (nx + 30, ny), (nx + 15, ny + 10)], fill=self.color_white)
+
     async def generate(self, song: Track) -> str:
         try:
             if not os.path.exists("cache"):
                 os.makedirs("cache")
 
             temp = f"cache/temp_{song.id}.jpg"
-            output = f"cache/{song.id}_final_v2.png"
+            output = f"cache/{song.id}_final.png"
 
             if os.path.exists(output):
                 return output
 
             await self.save_thumb(temp, song.thumbnail)
-            
-            # --- 1. Background ---
-            if os.path.exists(self.background_path):
-                background = Image.open(self.background_path).convert("RGBA")
-                background = background.resize((self.width, self.height), Image.Resampling.LANCZOS)
-            else:
-                background = Image.new("RGBA", (self.width, self.height), (20, 20, 20, 255))
 
-            # --- 2. Album Art (Left Side - Fixed Size & Position) ---
+            if os.path.exists(self.background_path):
+                base = Image.open(self.background_path).convert("RGBA")
+                base = base.resize((self.width, self.height), Image.Resampling.LANCZOS)
+            else:
+                base = Image.new("RGBA", (self.width, self.height), (0, 0, 0, 255))
+
             original_art = Image.open(temp).convert("RGBA")
-            
-            # SIZE FIX: 420px से घटाकर 320px कर दिया ताकि फ्रेम से बाहर न जाए
-            art_size = (320, 320) 
+
+            screen_w, screen_h = 1100, 600
+            blur_bg = original_art.resize((screen_w, screen_h), Image.Resampling.LANCZOS)
+            blur_bg = blur_bg.filter(ImageFilter.GaussianBlur(radius=20))
+            enhancer = ImageEnhance.Brightness(blur_bg)
+            blur_bg = enhancer.enhance(0.4) 
+
+            screen_x, screen_y = 90, 50 
+            base.paste(blur_bg, (screen_x, screen_y))
+
+            art_size = (300, 300)
             art = ImageOps.fit(original_art, art_size, method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
             
-            # Rounded Corners
             mask = Image.new("L", art_size, 0)
             draw_mask = ImageDraw.Draw(mask)
-            draw_mask.rounded_rectangle((0, 0, art_size[0], art_size[1]), radius=25, fill=255)
-            art.putalpha(mask)
-
-            # POSITION FIX: X को 100 से बढ़ाकर 140 कर दिया ताकि लैपटॉप के किनारे से दूर रहे
-            # Y को 200 कर दिया ताकि वर्टीकली सेंटर में दिखे
-            background.paste(art, (140, 200), art)
-
-            # --- 3. Text (Right Side) ---
-            draw = ImageDraw.Draw(background)
+            draw_mask.rounded_rectangle((0, 0, art_size[0], art_size[1]), radius=20, fill=255)
             
-            # Coordinates for Right Side (Based on your photo 817.jpg)
-            # लाइन लगभग Y=300 पर है, इसलिए हम उसके हिसाब से टेक्स्ट सेट करेंगे
-            
-            text_start_x = 580 # टेक्स्ट यहाँ से शुरू होगा (लाइन की शुरुआत के पास)
-            line_y_position = 295 # फोटो में लाइन यहाँ दिख रही है
+            art_x, art_y = 180, 210
+            base.paste(art, (art_x, art_y), mask)
 
-            # A. Title (लाइन के ऊपर)
+            draw = ImageDraw.Draw(base)
+            text_x = 520
+            center_y = 280
+
             title = song.title
-            if len(title) > 25:
-                title = title[:25] + "..."
+            if len(title) > 20:
+                title = title[:20] + "..."
             
-            # Y=240 (लाइन से थोड़ा ऊपर)
-            draw.text((text_start_x, line_y_position - 55), title, font=self.font_title, fill=self.text_color)
+            draw.text((text_x, center_y), title, font=self.font_title, fill=self.color_white)
+            draw.text((text_x, center_y + 60), "Toxic Bots", font=self.font_artist, fill=self.color_accent)
 
-            # B. Toxic Bots (लाइन के नीचे)
-            # Y=320 (लाइन के नीचे, लेकिन Play बटन से ऊपर)
-            draw.text((text_start_x, line_y_position + 25), "Toxic Bots", font=self.font_brand, fill=self.brand_color)
-
-            # Note: मैंने draw.line वाला कोड हटा दिया है।
-            # अब सिर्फ "Toxic Bots" और Song Title दिखेगा, लाइन बैकग्राउंड वाली ही रहेगी।
-
-            # Save
-            background.save(output)
+            bar_x = text_x
+            bar_y = center_y + 130
+            bar_length = 500
             
+            draw.line([(bar_x, bar_y), (bar_x + bar_length, bar_y)], fill=(100, 100, 100), width=4)
+            draw.line([(bar_x, bar_y), (bar_x + 150, bar_y)], fill=self.color_white, width=4)
+            draw.ellipse((bar_x + 145, bar_y - 6, bar_x + 157, bar_y + 6), fill=self.color_white)
+
+            draw.text((bar_x, bar_y + 15), "0:45", font=self.font_small, fill=self.color_grey)
+            draw.text((bar_x + bar_length - 40, bar_y + 15), "3:12", font=self.font_small, fill=self.color_grey)
+
+            icon_y = bar_y + 70
+            icon_start_x = text_x + 120
+            self.draw_icons(draw, icon_start_x, icon_y)
+
+            base.save(output)
+
             if os.path.exists(temp):
                 os.remove(temp)
-                
+
             return output
-            
+
         except Exception as e:
-            print(f"Error generating thumbnail: {e}")
+            print(f"Error: {e}")
             return config.DEFAULT_THUMB
-          
+                         
