@@ -117,12 +117,14 @@ async def _controls(_, query: types.CallbackQuery):
     except Exception as e:
         print(f"Control Error: {e}")
 
-
 @app.on_callback_query(filters.regex(r"^help") & ~app.bl_users)
 @lang.language()
 async def _help(_, query: types.CallbackQuery):
-    data = query.data.split()
-
+    return await query.answer(
+        url=f"https://t.me/{app.username}?start=help",
+        show_alert=True
+    )
+    
     if "close" in data:
         try:
             await query.message.delete()
