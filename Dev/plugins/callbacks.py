@@ -131,7 +131,7 @@ async def _help(_, query: types.CallbackQuery):
         return
 
     if len(data) == 1 or data[1] == "back":
-        text = query.lang["help_text"]
+        text = query.lang["help_menu"]
         keyboard = buttons.help_markup(query.lang)
     
     else:
@@ -140,7 +140,7 @@ async def _help(_, query: types.CallbackQuery):
             text = query.lang[key]
             keyboard = buttons.help_markup(query.lang, back=True)
         else:
-            text = query.lang["help_text"]
+            text = query.lang["help_menu"]
             keyboard = buttons.help_markup(query.lang)
 
     try:
