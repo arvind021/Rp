@@ -1,1 +1,1 @@
-run cmd ~ bash start
+run cmd ~ ```bash start```
