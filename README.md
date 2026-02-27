@@ -1,1 +1,1 @@
-# siya
+run cmd ~ bash start
