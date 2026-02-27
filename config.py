@@ -8,8 +8,8 @@ class Config:
         self.API_ID = 21705136
         self.API_HASH = "78730e89d196e160b0f1992018c6cb19"
 
-        self.BOT_TOKEN = getenv("Bot")
-        self.MONGO_URL = "mongodb+srv://Krishna:pss968048@cluster0.4rfuzro.mongodb.net/?retryWrites=true&w=majority"
+        self.BOT_TOKEN = "8677717845:AAGt3sfCM30DhTa6Pjs1GllVaNUyzRaKFR8"
+        self.MONGO_URL = ""
 
         self.LOGGER_ID = -1003763475049
         self.OWNER_ID = 6944519938
