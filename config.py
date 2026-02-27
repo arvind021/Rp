@@ -8,17 +8,17 @@ class Config:
         self.API_ID = 21705136
         self.API_HASH = "78730e89d196e160b0f1992018c6cb19"
 
-        self.BOT_TOKEN = getenv("B")
-        self.MONGO_URL = "mongodb+srv://Krishna:pss968048@cluster0.4rfuzro.mongodb.net/?retryWrites=true&w=majority"
+        self.BOT_TOKEN = getenv("Bot")
+        self.MONGO_URL = ""
 
-        self.LOGGER_ID = -1002843633996
-        self.OWNER_ID = 8319024738
+        self.LOGGER_ID = 
+        self.OWNER_ID = 
 
         self.DURATION_LIMIT = int(getenv("DURATION_LIMIT", 600000000)) * 600000000
         self.QUEUE_LIMIT = int(getenv("QUEUE_LIMIT", 200000000000))
         self.PLAYLIST_LIMIT = int(getenv("PLAYLIST_LIMIT", 200000000000))
 
-        self.SESSION1 = getenv("S", None)
+        self.SESSION1 = getenv("Session", None)
         self.SESSION2 = getenv("SESSION2", None)
         self.SESSION3 = getenv("SESSION3", None)
 
