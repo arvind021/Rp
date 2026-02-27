@@ -18,7 +18,7 @@ class Config:
         self.QUEUE_LIMIT = int(getenv("QUEUE_LIMIT", 200000000000))
         self.PLAYLIST_LIMIT = int(getenv("PLAYLIST_LIMIT", 200000000000))
 
-        self.SESSION1 = getenv("Session", None)
+        self.SESSION1 = "BAFLMbAAGH7JAbEAjnpcf3sZ8fAbEfMrwqMNkGIfx0oQ1Y4ysQTQ6LRjHl4-zloy6xxju5vgXUBInMcBMNVbHw6w47yKP16KWp2pQpZvrx5rI35AfV1vQxbWLEYxrF9CKzKRgDObOmoX_TDPuhKW25rSYnzkfiGQ4Ti0iNkkrGSyQSfFX41lObcHtXi60E7QGQIQkMfHBELOJvdpGzfQHZV3XqvXIpi1q-Xw4oXp7xVWgxhzjaDkowNmybaeZSfba4X8H6GSnR7-Ab8Sy6z4ZQdVfM1EXrCEZRIDJGAR7vv-15jP6EyPz0wO2hnq1C26lR4BLNdiz-YX_VglYG1MZCB1lKsSNgAAAAF0Y2d0AA"
         self.SESSION2 = getenv("SESSION2", None)
         self.SESSION3 = getenv("SESSION3", None)
 
@@ -30,7 +30,7 @@ class Config:
         self.VIDEO_PLAY: bool = getenv("VIDEO_PLAY", True)
         self.COOKIES_URL = [
             url for url in getenv("COOKIES_URL", "https://batbin.me/captors").split(" ")
-            if url and "batbin.me" in url
+            if url and "batbin.me" in url"
         ]
         self.DEFAULT_THUMB = "https://ar-hosting.pages.dev/1770755014036.jpg"
         self.PING_IMG = "https://ar-hosting.pages.dev/1770755014036.jpg"
