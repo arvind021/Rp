@@ -11,8 +11,8 @@ class Config:
         self.BOT_TOKEN = getenv("Bot")
         self.MONGO_URL = ""
 
-        self.LOGGER_ID = 
-        self.OWNER_ID = 
+        self.LOGGER_ID = -1003763475049
+        self.OWNER_ID = 6944519938
 
         self.DURATION_LIMIT = int(getenv("DURATION_LIMIT", 600000000)) * 600000000
         self.QUEUE_LIMIT = int(getenv("QUEUE_LIMIT", 200000000000))
