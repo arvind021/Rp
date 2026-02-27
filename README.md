@@ -1,1 +1,1 @@
-`**Run Bot**` ~ ``bash start``
+`Run Bot` ~ `bash start`
